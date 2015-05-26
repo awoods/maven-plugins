@@ -345,6 +345,7 @@ public class SiteMojo extends GitHubProjectMojo {
 
 		boolean createNoJekyll = noJekyll;
 
+        int remaining = paths.length;
 		for (String path : paths) {
 			TreeEntry entry = new TreeEntry();
 			entry.setPath(prefix + path);
@@ -354,7 +355,13 @@ public class SiteMojo extends GitHubProjectMojo {
 			entry.setType(TYPE_BLOB);
 			entry.setMode(MODE_BLOB);
 			entry.setSha(createBlob(service, repository, path));
-			entries.add(entry);
+            try {
+                info("blobs remaining: " + remaining--);
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                info("error sleeping!!");
+            }
+            entries.add(entry);
 		}
 
 		if (createNoJekyll) {
