@@ -22,6 +22,7 @@
 package com.github.maven.plugins.site;
 
 import static java.lang.Integer.MAX_VALUE;
+import static java.lang.Integer.min;
 import static org.eclipse.egit.github.core.Blob.ENCODING_BASE64;
 import static org.eclipse.egit.github.core.TreeEntry.MODE_BLOB;
 import static org.eclipse.egit.github.core.TreeEntry.TYPE_BLOB;
@@ -327,6 +328,20 @@ public class SiteMojo extends GitHubProjectMojo {
 			debug(MessageFormat.format("Scanned files to include: {0}",
 					Arrays.toString(paths)));
 
+		// Push updates in multiple passes
+		final int CAPACITY = 500;
+		int start = 0;
+		int end = min(CAPACITY, paths.length);
+		while (start < paths.length) {
+			info("Sending batch: [" + start + " - " + end + ")");
+			String[] subpaths = Arrays.copyOfRange(paths, start, end);
+			doExecute(repository, subpaths);
+			start = end;
+			end = (end + CAPACITY < paths.length ? end + CAPACITY : paths.length );
+		}
+	}
+
+	private void doExecute(RepositoryId repository, String[] paths) throws MojoExecutionException {
 		DataService service = new DataService(createClient(host, userName,
 				password, oauth2Token, server, settings, session));
 
@@ -425,6 +440,7 @@ public class SiteMojo extends GitHubProjectMojo {
 			else
 				tree = new Tree();
 		} catch (IOException e) {
+			info(e.toString(), e);
 			throw new MojoExecutionException("Error creating tree: "
 					+ getExceptionMessage(e), e);
 		}
@@ -446,6 +462,7 @@ public class SiteMojo extends GitHubProjectMojo {
             commit.setAuthor(author);
             commit.setCommitter(author);
         } catch (IOException e) {
+			info(e.toString(), e);
             throw new MojoExecutionException("Error retrieving user info: "
                     + getExceptionMessage(e), e);
         }
